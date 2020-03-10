@@ -87,7 +87,7 @@ colorize lt_green ${warn_message}
 
 This will return the following:
 
-![Example 2](images/color_example.png)
+![Example 2](images/color_example.PNG)
 
 * * *
 
@@ -107,7 +107,7 @@ package_check vim lz4json httpd sqlit3 something mariadb
 
 It may look something like this:
 
-![Example 2](images/package_check.png)
+![Example 2](images/package_check.PNG)
 
 * * *
 
@@ -128,7 +128,7 @@ printf "${text}\n"
 
 Which returns the following:
 
-![](images/html_strip.png)
+![](images/html_strip.PNG)
 
 * * *
 
@@ -148,7 +148,7 @@ idle_spinner "Working: "
 
 Here is what it may look like:
 
-![](images/idle_spinner.gif)
+![](images/idle_spinner.PNG)
 
 * * *
 
@@ -185,7 +185,7 @@ esac
 
 Here is what the results may look like:
 
-![](images/create_menu.gif)
+![](images/menu.PNG)
 
 * * *
 
