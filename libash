@@ -1,0 +1,380 @@
+#! /usr/bin/env bash
+
+version_check()(
+	
+	#--# we pull in but don't update, the latest from the branch
+	#--# then check if our repository is behind the master
+	#--# whether the user wants to exit after is up to them
+
+	git remote update >/dev/null 2>/dev/null
+	if $(git status | grep behind >/dev/null); then
+	  echo "There is a pending update. You can pull it with the following in the source directory: "
+	  echo 
+	  echo "$ git pull origin master"
+	else :
+	fi
+
+)
+
+colorize()(
+
+	#--# We declare our colors
+
+	local DARK_RED='\e[38;5;88m'
+	local RED='\e[38;5;160m'
+	local LIGHT_GREEN='\e[38;5;41m'
+	local YELLOW='\e[38;5;226m'
+	local SKY_BLUE='\e[38;5;45m'
+	local BLUE='\e[38;5;57m'
+	local LIGHT_GREY='\e[38;5;244m'
+	local WHITE='\e[38;5;231m'
+	local CLEAR='\e[0m'
+	
+	#--# we determine what color the user requests, then shift the arguments
+	#--# so that they only contain the message that was passed, this goes onto 
+	#--# a pretty long if statement that just checks for the color, then prints
+	#--# the message wrapped in that color
+
+	local COLOR="${1}"
+	shift
+	local MESSAGE="${@}"
+
+	if [[ ${COLOR} == "dk_red" ]]; then
+		printf "${DARK_RED}${MESSAGE}${CLEAR}\n" 
+	elif [[ ${COLOR} == "red" ]]; then
+		printf "${RED}${MESSAGE}${CLEAR}\n" 
+	elif [[ ${COLOR} == "yellow" ]]; then
+		printf "${YELLOW}${MESSAGE}${CLEAR}\n" 
+	elif [[ ${COLOR} == "lt_green" ]]; then
+		printf "${LIGHT_GREEN}${MESSAGE}${CLEAR}\n" 
+	elif [[ ${COLOR} == "sk_blue" ]]; then
+		printf "${SKY_BLUE}${MESSAGE}${CLEAR}\n" 
+	elif [[ ${COLOR} == "blue" ]]; then
+		printf "${BLUE}${MESSAGE}${CLEAR}\n" 
+	elif [[ ${COLOR} == "lt_grey" ]]; then
+		printf "${LIGHT_GREY}${MESSAGE}${CLEAR}\n" 
+	elif [[ ${COLOR} == "white" ]]; then
+		printf "${WHITE}${MESSAGE}${CLEAR}\n" 
+	fi
+)
+
+package_check()(
+
+	#--# we check whether or not color was specified for our message
+	#--# if yes, then we shift the arguments so only the packages are left
+
+	if [[ ${1} == "COLOR_ON" ]]; then
+		local RED='\e[38;5;160m'
+		local LIGHT_GREEN='\e[38;5;41m'
+		local CLEAR='\e[0m'
+		shift
+	fi
+	
+	#--# we check what OS this is, as it will print a specific package
+	#--# installation command
+
+	local OS_VERSION=$(awk -F '=' '/PRETTY_NAME/ {print $2}' /etc/os-release)
+	
+	#--# This determines which installation command we should use
+
+	if [[ ${OS_VERSION} =~ "Ubuntu" ]]; then
+		local PACKAGE_MANAGER="apt install -y "
+	elif [[ ${OS_VERSION} =~ "Centos" ]] || [[ ${OS_VERSION} =~ "Fedora" ]] \
+		|| [[ ${OS_VERSION} =~ "Redhat" ]]; then
+		local PACKAGE_MANAGER="yum install -y "
+	elif [[ ${OS_VERSION} =~ "Arch" ]] || [[ ${OS_VERSION} =~ "Manjaro" ]]; then
+		local PACKAGE_MANAGER="pacman -Sy "
+	fi
+
+	#--# We iterate through the array of packages and print the messages
+	#--# accordingly if they are not found
+
+	for PACKAGE in ${@}; do 
+		if [[ ! $(which ${PACKAGE} 2> /dev/null) ]]; then
+			local EXIT_FLAG="on"
+			read -r -d '' __MESSAGE <<- EOM
+				${RED}[ FAIL ]${CLEAR} -- '${PACKAGE}' is either not installed or not in your path. Please 
+				install it then try re-running the script. If this can be installed with your 
+				package manager, then try the following:
+	
+				$ ${LIGHT_GREEN}sudo ${PACKAGE_MANAGER}${PACKAGE}${CLEAR}
+			EOM
+			printf "${__MESSAGE}\n\n"
+		fi
+	done
+
+	#--# a simple if statement to return 1 or 0 based on whether or not
+	#--# there were packages missing. This is so the user can decide whether or
+	#--# not to exit their script
+
+	[[ ! -z ${EXIT_FLAG} ]] && return 1 || return 0
+)
+
+html_strip()(
+	
+	#--# A curl request template to more closely mimic what your browser might do
+	#--# then some sed statements to remove the html tags and css
+
+	BASE_URL=${1}
+	TEXT_HTML=$(curl -sLk ${BASE_URL} \
+		-H 'User-Agent: Mozilla/5.0 (X11; Fedora; Linux x86_64) Firefox/66.0'\
+	   	-H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'\
+	   	-H 'Accept-Language: en-US,en;q=0.5'\
+	   	--compressed\
+	   	-H 'Connection: keep-alive'\
+		-H 'Upgrade-Insecure-Requests: 1'\
+	   	-H 'Pragma: no-cache'\
+	   	-H 'Cache-Control: no-cache' \
+		| sed -e 's/<[^>]*>//g' -e '/{/,/}/d' -e '/}/d' -e '/{/d' -e '/^$/d' )
+
+	printf "${TEXT_HTML}"
+)
+
+#--# These are a number of ansi escape sequences we use to capture the cursor
+#--# rows, columns, set it to blink, reset the screen and more. As there are quite
+#--# a few, a complete index can be found in these links
+#--# http://ascii-table.com/ansi-escape-sequences.php
+#--# https://en.wikipedia.org/wiki/ANSI_escape_code
+
+_A_ESC='\033'
+cursor_blink()     ( printf "${_A_ESC}[5m > ${_A_ESC}[25m${_A_ESC}[7m" )
+save_position()    ( printf "${_A_ESC}[s"; )
+return_position()  ( printf "${_A_ESC}[u"; )
+set_new_position() ( printf "${_A_ESC}[${1};0H"; )
+erase_from_pos()   ( printf "${_A_ESC}[K"; )
+get_bottom()       ( tput lines | awk '{print $NF}'; )
+reset_screen()     ( printf "${_A_ESC}[2J"; )
+
+#--# \033[6n gets the x and y cursor coordinates, it is read as ^[[18;1R
+#--# so we set the deliminator for read to 'R'. We assign the row and column
+#--# to variables then use parameter substring removal to strip the row down to 
+#--# just the number. We also make certain to save and return the In line file
+#--# separator (IFS)
+
+current_position() ( OFIS=${IFS};IFS=';' read -sdR -p $'\033[6n' ROW COL; echo ${ROW#*[}; IFS=${OIFS}; )
+
+idle_spinner()(
+		
+        #--# We assign the pid of the last process, we will track this
+        #--# and run the spinner until the parent PID completes
+
+        local TASK_PID=$!
+        local MESSAGE="${1}"
+        local SPIN='/-\|/-\|'
+        local incr='0'
+
+		#--# We save our position, get the necessary positions, as 
+		#--# we return to them later on
+
+		save_position
+
+        local BOTTOM=$(get_bottom)
+        local CURRENT=$(current_position)
+
+        set_new_position ${BOTTOM}
+
+        #--# This nifty loop uses bash substring expansion, and incrementation
+        #--# essentially, we have a counter that increases relative to the number
+        #--# of objects in $SPIN. The counter hits the same number of characters in
+        #--# SPIN, we erase the printed characters, and reset the counter. With the
+        #--# DOTS variable, this prints white spaces equal to the number of what
+        #--# has been incrememented. This is then subssituted for periods
+        #--# For substring expanasion, see this:
+        #--# https://wiki.bash-hackers.org/syntax/pe#substring_expansion
+        
+		spin_loop() (
+				#--# Kill -0 checks if it's running, never actually kills
+				#--# essentially this loop will run until the main PID completes
+                while kill -0 ${TASK_PID} 2>/dev/null; do
+                        ((incr++))
+                        ((incr==${#SPIN})) && incr='0' \
+                                && set_new_position ${BOTTOM} && erase_from_pos
+                        local DOTS=$(printf " %${incr}s")
+                        printf "\r${MESSAGE}${SPIN:${incr}:1}${DOTS// /\.}" 
+                        sleep .3
+                done 
+                set_new_position ${BOTTOM} && erase_from_pos
+                return_position
+        )
+
+		#--# This runs our loop, essentially making sure that duplicates
+		#--# are never started, as it won't start if a pid exists
+
+        if [[ -z ${__SUB_PROCESS} ]]; then
+                spin_loop 
+                __SUB_PROCESS=$!
+        fi
+)
+
+create_menu()(
+	
+	local TITLE="${1}"
+	shift
+	local MENU_ENTRIES=${@}
+	
+	#--# we read in our variables to make sure the formatting stays the same
+	#--# what we really want to keep in tact are the new lines. Echo will usually
+	#--# mess them up
+
+	read -r -d '' __MESSAGE <<- EOM
+	${MENU_ENTRIES}
+	EOM
+
+	#--# we also use the above to make sure the terminal is large enough to accomodate
+	#--# the menu
+
+	local MENU_LEN=$(printf "${__MESSAGE}\n" | wc -l)
+	local WARN="Your terminal is smaller than the menu. Please resize."
+	
+	[[ $(tput lines) -lt "${MENU_LEN}" ]] && (printf "${WARN}\n"; exit 1) || :
+	
+	#--# we set all the text, from new lines, to an array
+
+	unset __MENU_ITEMS
+	declare -a __MENU_ITEMS
+	
+	OIFS=${IFS}; IFS=$'\n'
+	for __ITEM in ${__MESSAGE}; do
+		__MENU_ITEMS=( $(printf "${__ITEM}") )
+	done
+
+	#--# now we reset the screen so that the menu can begin. We save our spot
+	#--# at the top, and print the title, then move down and
+    #--# overwrite the first message with [7m (reverse video) which inverts
+    #--# the colors, effectively highliting the row
+
+	reset_screen
+	set_new_position 0
+	printf "${TITLE}\n------------\n"
+	set_new_position 4
+	save_position
+	printf " ${__MESSAGE}\n"
+	return_position
+	cursor_blink; printf "[${__MENU_ITEMS[0]}] ${_A_ESC}[27m"; 
+	return_position
+
+	local CUR_POS=$(current_position)
+
+	#--# so now we need to print each line, we need to go to the first line and set it blinking
+	#--# when they arrow down, we increment, go to the next line, reprint it, and so forth, with 
+	#--# an incrementing variable that we can slide into the array and pull a value from 
+
+	int_check(){ 
+		[[ ${1} -lt '0' ]] && i='0'
+		[[ ${1} -eq ${#__MENU_ITEMS[@]} ]] && i="$(( ${#__MENU_ITEMS[@]} - 1 ))" 
+	}
+
+	i='0'
+
+	#--# probably a cleaner way to write the loop, but I'm tired, and I don't care
+	#--# Most of the shortened if statements ([[]] && ||)) are just to make sure
+	#--# we don't go over the number of items in the menu, or scroll past the 
+	#--# bounds of the menu. Essentially, each loop, we have to rewrite the line we are on
+	#--# without video reverse, then go to the next line and re-write it with video reverse
+	#--# and whatever fancy thing around it we want, in this case an arrow and brackets
+	#--# the read statement captures the keys from up and down and enter
+
+	#--# A in the case statement is the up arrow key, we decrease i each time to go to a lower
+	#--# row number. We have to set the new position at $i + 4 to account for the title bar
+	#--# B is for down. We have several checks in there to make sure we stay in bounds of the 
+	#--# menu and don't scroll past it
+	while true; do
+		read -rsn 3 KEY_CAPTURE
+		KEY_CAPTURE=${KEY_CAPTURE#*[}
+		case ${KEY_CAPTURE} in
+			'A' )   erase_from_pos
+					printf "${__MENU_ITEMS[i]}"
+					((i--))
+					int_check ${i}
+					set_new_position $(( ${i} + 4 ))
+					cursor_blink; printf "[${__MENU_ITEMS[i]}] ${_A_ESC}[27m"
+					set_new_position $(( ${i} + 4 ))
+					;;
+			'B' )   [[ ${i} -eq ${#__MENU_ITEMS[@]} ]] && : || (erase_from_pos; printf " ${__MENU_ITEMS[i]}")
+					((i++))
+					int_check ${i}
+					set_new_position $(( ${i} + 4 ))
+					[[ ${i} -eq ${#__MENU_ITEMS[@]} ]] && set_new_position ${i} || set_new_position $(( ${i} + 4 ))
+					cursor_blink; printf "[${__MENU_ITEMS[i]/ /}] ${_A_ESC}[27m"
+					[[ ${i} -eq ${#__MENU_ITEMS[@]} ]] && set_new_position ${i} || set_new_position $(( ${i} + 4 ))
+					;;
+				'' ) CUR_POS=$(current_position)
+				     i=$(( ${CUR_POS} - 3 ))
+					 reset_screen
+					 set_new_position 0
+					 return ${i}
+				 	 break ;;
+			# it from the function, the user will run a case statement which will
+			# determine the next course their script takes
+		esac	
+	done
+	echo
+	IFS=${OIFS}
+)
+
+password_gen()(
+        [[ ! -z ${1} ]] && local TYPE="${1}" || local TYPE='cx'
+        shift 
+        [[ ! -z ${1} ]] && local COUNT="${1}" || local COUNT='16'
+
+        case $TYPE in
+                'an' ) local __PW=$(</dev/urandom tr -dc '[a-zA-Z][0-9]' | head -c ${COUNT}) ;;
+                'sym' ) local __PW=$(</dev/urandom tr -dc '!#&()*+,-/<=>[\]^_{|}~' | head -c ${COUNT}) ;;
+                'cx' ) local __PW=$(</dev/urandom tr -dc '[a-zA-Z][0-9]!#&()*+,-/<=>[\]^_{|}~' | head -c ${COUNT}) ;;
+        esac
+
+        printf "${__PW}\n"
+)
+
+rev_portf(){
+
+	#--# fairly simple, we assign the variables passed to variables here
+	#--# I may go back later and do a nicer getops/case statement so that 
+	#--# you can pass flags
+
+	local DEST_PASS="${1}"
+	local DEST_USER="${2}"
+	local DEST_HOST="${3}"
+	local DEST_PORT="${4}"
+	local LOCAL_PORT="${5}"
+
+	#--# a clean up and a trap to make sure the reverse ssh proxy closes when
+	#--# the script exits
+
+	clean_up(){ 
+		[[ ! -z ${REV_PORT_FWD} ]] && kill ${REV_PORT_FWD} 2>/dev/null
+	    exit
+	}   
+	
+	trap clean_up SIGINT INT TERM EXIT
+	
+	#--# we use sshpass to send a password, if there is one, and then our ssh command
+	#--# as per below to gain access to the destination host. We make certain to capture
+	#--# the PID immediately after
+
+	sshpass -p "${DEST_PASS}" ssh -N -T -L ${LOCAL_PORT}:127.0.0.1:22 \
+    	 ${DEST_USER}@${DEST_HOST} -p ${DEST_PORT} 2>/dev/null &
+	REV_PORT_FWD=$!
+
+	#--# essentially wait until we connect, as soon as we connect, close the connection
+	#--# and continue
+
+	until echo | nc -c 127.0.0.1 ${LOCAL_PORT} >/dev/null 2>/dev/null; do
+    	sleep 1
+	done
+	
+}
+
+close_rev_portf()(
+	kill ${REV_PORT_FWD}
+)
+
+export -f version_check
+export -f colorize
+export -f package_check
+export -f html_strip
+export -f idle_spinner
+export -f create_menu
+export -f password_gen
+export -f rev_portf
+export -f close_rev_portf
