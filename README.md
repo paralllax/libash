@@ -189,7 +189,7 @@ Here is what the results may look like:
 ![](images/menu.PNG)
 * * *
 
-#### youtube_bash_dl<a name=tdl></a>
+#### youtube_bash_dl<a name=ytdl></a>
 
 A basic function to download a youtube video. Here is an example of the function syntax:
 
