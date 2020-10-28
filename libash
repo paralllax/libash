@@ -369,6 +369,42 @@ close_rev_portf()(
 	kill ${REV_PORT_FWD}
 )
 
+youtube_bash_dl()(
+	local target="${1}"
+	local file_name="${2}"
+	
+	set -e
+
+	#--# we are essentially just trying to strip the html to get the output of what 
+	#--# would be console.log(ytplayer.config.args.player_response), we do so using
+	#--# pup, and grep, then jq
+
+	local main_object=$(curl -X GET -sLk "${target}" \
+	    | pup 'script:contains(";ytplayer.web_player_context_config") text{}' \
+	    | grep -o '{"args.*"}}' \
+	    | jq '.args.player_response')
+	set +e
+	
+	#--# essentially if this is run in the terminal as a function, it sets the match to bash
+	#--# if this was ran in a script, it sets the match to the name of the script
+
+	[[ ${0} == '-bash' ]] && local match="${0}: " || local match="${0}: line [[:digit:]]\+: " 
+	
+	#--# after many failed sed shenanigans, the best way to remove all the escape sequences
+	#--# was with eval.... (sorry!) if any of you geniuses know of a clean sed statement, throw in 
+	#--# a pull request! I will happily approve it. In any case, we use it to format the object
+	#--# so that we can parse it with jq and pull the URL. 
+
+	eval $(echo ${main_object}) 2>&1 \
+            | sed "s/${match}//;s/: File name too long//" \
+	    | jq -r '.streamingData.formats | last(.[].url)' \
+	    | xargs -I{} wget -q -O ${file_name} {}
+	
+	#--# pretty generic check to see if file is there
+
+	[[ -f ${file_name} ]] && printf "%s -- Downloaded\n" ${file_name} || printf "Download Failed\n"
+)
+
 export -f version_check
 export -f colorize
 export -f package_check
@@ -378,3 +414,4 @@ export -f create_menu
 export -f password_gen
 export -f rev_portf
 export -f close_rev_portf
+export -f youtube_bash_dl

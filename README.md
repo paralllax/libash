@@ -37,6 +37,7 @@ A library with a bunch of dynamic bash functions to make things easier for scrip
  - [html_strip](#html)
  - [idle_spinner](#idle)
  - [create_menu](#menu)
+ - [youtube_bash_dl](#ytdl)
  - [rev_portf](#port)
 
 * * *
@@ -186,6 +187,15 @@ esac
 Here is what the results may look like:
 
 ![](images/menu.PNG)
+* * *
+
+#### youtube_bash_dl<a name=tdl></a>
+
+A basic function to download a youtube video. Here is an example of the function syntax:
+
+```
+youtube_bash_dl "https://...." "myfile.mp4"
+```
 
 * * *
 
