@@ -379,26 +379,14 @@ youtube_bash_dl()(
 	#--# would be console.log(ytplayer.config.args.player_response), we do so using
 	#--# pup, and grep, then jq
 
-	local main_object=$(curl -X GET -sLk "${target}" \
+	#--# I removed the entire eval portion after discovering fromjson and max_by for jq
+	#--# in a similar oneliner based on perl https://github.com/github/dmca/commit/bccf7d0dbfec423c4a967f668be47b6339d15893#commitcomment-43529358
+	curl -X GET -sLk "${target}" \
 	    | pup 'script:contains(";ytplayer.web_player_context_config") text{}' \
 	    | grep -o '{"args.*"}}' \
-	    | jq '.args.player_response')
-	set +e
-	
-	#--# essentially if this is run in the terminal as a function, it sets the match to bash
-	#--# if this was ran in a script, it sets the match to the name of the script
-
-	[[ ${0} == '-bash' ]] && local match="${0}: " || local match="${0}: line [[:digit:]]\+: " 
-	
-	#--# after many failed sed shenanigans, the best way to remove all the escape sequences
-	#--# was with eval.... (sorry!) if any of you geniuses know of a clean sed statement, throw in 
-	#--# a pull request! I will happily approve it. In any case, we use it to format the object
-	#--# so that we can parse it with jq and pull the URL. 
-
-	eval $(echo ${main_object}) 2>&1 \
-            | sed "s/${match}//;s/: File name too long//" \
-	    | jq -r '.streamingData.formats | last(.[].url)' \
+	    | jq '.args.player_response | fromjson | .streamingData.formats | max_by(.bitrate) | .url' \
 	    | xargs -I{} wget -q -O ${file_name} {}
+	set +e
 	
 	#--# pretty generic check to see if file is there
 
