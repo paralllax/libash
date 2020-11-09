@@ -51,11 +51,12 @@ A library with a bunch of dynamic bash functions to make things easier for scrip
 - jq
 	A tool used to parse json, also useed for the youtube_bash_dl function. This shoudl exist in the default repositories of your distrobution. You can install it with your package manager via one of the following:
 
+	```
 	apt install jq
 	yum install jq
 	pacman -Sy jq
 
-
+	```
 
 
 * * *
