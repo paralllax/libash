@@ -2,6 +2,7 @@
 
 A library with a bunch of dynamic bash functions to make things easier for scripting.
 
+
 ## How to use
 
 1. clone the repo wherever you would like
@@ -26,11 +27,11 @@ A library with a bunch of dynamic bash functions to make things easier for scrip
 
 	Then simply call the functions in your script
 
-
 ## Supported functions/examples
 * * *
 #### Index
 
+ - [Requirements](#req)
  - [version_check](#version)
  - [colorize](#color)
  - [package_check](#package)
@@ -39,6 +40,23 @@ A library with a bunch of dynamic bash functions to make things easier for scrip
  - [create_menu](#menu)
  - [youtube_bash_dl](#ytdl)
  - [rev_portf](#port)
+
+* * *
+
+#### Requirements<a name=req></a>
+
+ - Pup
+	If you end up using the youtube_bash_dl function, this does rely on a 3rd party tool - pup. It is a command line html parser we use. You can see their install instructions [here](https://github.com/ericchiang/pup)
+
+- jq
+	A tool used to parse json, also useed for the youtube_bash_dl function. This shoudl exist in the default repositories of your distrobution. You can install it with your package manager via one of the following:
+
+	apt install jq
+	yum install jq
+	pacman -Sy jq
+
+
+
 
 * * *
 

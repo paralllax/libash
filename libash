@@ -386,6 +386,7 @@ youtube_bash_dl()(
 	    | grep -o '{"args.*"}}' \
 	    | jq '.args.player_response | fromjson | .streamingData.formats | max_by(.bitrate) | .url' \
 	    | xargs -I{} wget -q -O ${file_name} {}
+
 	set +e
 	
 	#--# pretty generic check to see if file is there
