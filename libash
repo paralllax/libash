@@ -372,7 +372,6 @@ close_rev_portf()(
 youtube_bash_dl()(
 	local target="${1}"
 	local file_name="${2}"
-	
 	set -e
 
 	#--# we are essentially just trying to strip the html to get the output of what 
@@ -385,13 +384,20 @@ youtube_bash_dl()(
 	    | pup 'script:contains(";ytplayer.web_player_context_config") text{}' \
 	    | grep -o '{"args.*"}}' \
 	    | jq '.args.player_response | fromjson | .streamingData.formats | max_by(.bitrate) | .url' \
-	    | xargs -I{} wget -q -O ${file_name} {}
-
+	    | xargs -I{} wget -q -O "${file_name}.mp4" {}
+	
+	shift 2
+	case ${1} in
+		-a|--audio) ffmpeg -nostats -loglevel 0 -y -i "${file_name}.mp4" "${file_name}.mp3" && rm -f -- "${file_name}.mp4"
+			    file_name="${file_name}.mp3" ;;
+		*) file_name="${file_name}.mp4" ;;
+	esac
+	
 	set +e
 	
 	#--# pretty generic check to see if file is there
 
-	[[ -f ${file_name} ]] && printf "%s -- Downloaded\n" ${file_name} || printf "Download Failed\n"
+	[[ -f "${file_name}" ]] && printf "%s -- Downloaded\n" ${file_name} || printf "Download Failed\n"
 )
 
 export -f version_check
