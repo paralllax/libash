@@ -48,16 +48,14 @@ A library with a bunch of dynamic bash functions to make things easier for scrip
  - Pup
 	If you end up using the youtube_bash_dl function, this does rely on a 3rd party tool - pup. It is a command line html parser we use. You can see their install instructions [here](https://github.com/ericchiang/pup)
 
-- jq
-	A tool used to parse json, also useed for the youtube_bash_dl function. This shoudl exist in the default repositories of your distrobution. You can install it with your package manager via one of the following:
+- jq / ffmpeg
+	A [jq] tool used to parse json and another [ffpmeg] tool used to extract the audio, both used for the youtube_bash_dl function. This should exist in the default repositories of your distrobution. You can install it with your package manager via one of the following. Note that if you are on fedora, you may need the RPMfusion repository to get ffmpeg. 
 
 	```
-	apt install jq
-	yum install jq
-	pacman -Sy jq
-
+	sudo apt install jq ffmpeg 
+	sudo yum install jq ffmpeg
+	sudo pacman -Sy jq ffmpeg
 	```
-
 
 * * *
 
@@ -210,10 +208,16 @@ Here is what the results may look like:
 
 #### youtube_bash_dl<a name=ytdl></a>
 
-A basic function to download a youtube video. Here is an example of the function syntax:
+A basic function to download a youtube video. There are two examples, in the first, it will download the raw vide. In the second, it will provide only the audio. You do not need to add extensions when you specify the name. The script will add the extensions automatically. If you need a more comprehensive downloader with better functions, you'll be better off using the original youtube_dl. Here is an example of the function syntax:
 
 ```
-youtube_bash_dl "https://...." "myfile.mp4"
+youtube_bash_dl "https://...." "Name of file"
+```
+
+If you want to only extract the audio, you can add the `-a` or `--audio` flag at the end. 
+
+```
+youtube_bash_dl "https://...." "Name of file" [-a/--audio]
 ```
 
 * * *
